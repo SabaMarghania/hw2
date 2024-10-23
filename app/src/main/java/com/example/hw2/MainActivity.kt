@@ -7,15 +7,18 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ListView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import dagger.hilt.android.AndroidEntryPoint
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var editTextItem: EditText
     private lateinit var buttonAdd: Button
     private lateinit var listViewItems: ListView
-    private val itemList = mutableListOf<String>()
     private lateinit var adapter: ArrayAdapter<String>
+
+    private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,33 +28,25 @@ class MainActivity : AppCompatActivity() {
         buttonAdd = findViewById(R.id.btn_add)
         listViewItems = findViewById(R.id.lv_items)
 
-        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, itemList)
+        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, viewModel.itemList)
         listViewItems.adapter = adapter
 
         buttonAdd.setOnClickListener {
-            addItem()
+            val newItem = editTextItem.text.toString().trim()
+            if (newItem.isNotEmpty()) {
+                viewModel.onEvent(MainEvent.AddItem(newItem))
+                adapter.notifyDataSetChanged()
+                editTextItem.text.clear()
+            } else {
+                Toast.makeText(this, "Enter an item", Toast.LENGTH_SHORT).show()
+            }
         }
 
-        listViewItems.setOnItemLongClickListener { parent, view, position, id ->
-            removeItem(position)
+        listViewItems.setOnItemLongClickListener { _, _, position, _ ->
+            viewModel.onEvent(MainEvent.RemoveItem(position))
+            adapter.notifyDataSetChanged()
+            Toast.makeText(this, "Item removed", Toast.LENGTH_SHORT).show()
             true
         }
-    }
-
-    private fun addItem() {
-        val newItem = editTextItem.text.toString().trim()
-        if (newItem.isNotEmpty()) {
-            itemList.add(0, newItem)
-            adapter.notifyDataSetChanged()
-            editTextItem.text.clear()
-        } else {
-            Toast.makeText(this, "enter an item", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun removeItem(position: Int) {
-        itemList.removeAt(position)
-        adapter.notifyDataSetChanged()
-        Toast.makeText(this, "Item removed", Toast.LENGTH_SHORT).show()
     }
 }
